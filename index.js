@@ -55,7 +55,7 @@ exports.handler = async (event) => {
     }
 
     else if (event.path === '/envios/pendientes' && event.httpMethod === 'GET') {
-        var params = {
+        let params = {
             TableName: 'Envio',
             IndexName: 'EnviosPendientesIndex'
         };
@@ -66,7 +66,12 @@ exports.handler = async (event) => {
                 response = {body: 'Error al buscar envios pendientes', statusCode: 400}
             }
             else {
-                response = {body: data.Items, statusCode: 200}
+                if (data.Items.length > 0) {
+                    response = {body: data.Items, statusCode: 200}
+                }
+                else {
+                    response = {body: 'No hay envios pendientes', statusCode: 200}
+                }
             }
         }).promise();
 
@@ -74,13 +79,13 @@ exports.handler = async (event) => {
     }
 
     else if (event.path === `/envios/${event.pathParameters.idEnvio}/entregado`) {
-        var params = {
+        let params = {
             TableName : "Envio",
             Key : {
                 "id": event.pathParameters.idEnvio           
             },
             UpdateExpression : "REMOVE pendiente",
-            ReturnValues : "UPDATED_NEW"
+            ReturnValues : "ALL_NEW"        
         };
 
         let response
@@ -88,8 +93,12 @@ exports.handler = async (event) => {
             if (err) {
                 response = {body: 'No se pudo actualizar el elemento', statusCode:400}
             } else {
-                console.log(JSON.stringify(data))
-                response = {body: `Objeto con id ${event.pathParameters.idEnvio} marcado como entregado`, statusCode:200}
+                if (Object.keys(data.Attributes).length === 1) {
+                    response = {body: `Objeto con id ${event.pathParameters.idEnvio} no encontrado`, statusCode:200}
+                }
+                else {
+                    response = {body: data.Attributes, statusCode:200}
+                }
             }
         }).promise();
         return response
